@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Play, MessageCircle, ChevronDown } from "lucide-react";
+import { Play, MessageCircle } from "lucide-react";
 import type { Translations } from "@/i18n";
 
 interface HeroProps {
@@ -141,26 +141,6 @@ export default function Hero({ t }: HeroProps) {
             <MessageCircle size={16} />
             {t.hero.ctaSecondary}
           </a>
-        </motion.div>
-
-        {/* Scroll indicator - below buttons */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 1.5 }}
-        >
-          <motion.div
-            animate={{ y: [0, 8, 0] }}
-            transition={{ duration: 2, repeat: Infinity }}
-            className="w-6 h-10 border border-muted/20 rounded-full flex justify-center pt-2"
-          >
-            <motion.div
-              animate={{ opacity: [0.2, 0.8, 0.2], y: [0, 10, 0] }}
-              transition={{ duration: 2, repeat: Infinity }}
-            >
-              <ChevronDown size={14} className="text-muted/40" />
-            </motion.div>
-          </motion.div>
         </motion.div>
       </div>
     </section>

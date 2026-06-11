@@ -56,7 +56,7 @@ export default function Navbar({ t, locale, onLocaleChange }: NavbarProps) {
             <button
               key={item}
               onClick={() => scrollTo(item)}
-              className="text-sm text-muted-light hover:text-accent transition-colors font-medium tracking-wide"
+              className="text-sm text-muted-light hover:text-accent transition-colors font-medium tracking-wide cursor-pointer"
             >
               {t.nav[item]}
             </button>
@@ -89,7 +89,7 @@ export default function Navbar({ t, locale, onLocaleChange }: NavbarProps) {
               <button
                 key={item}
                 onClick={() => scrollTo(item)}
-                className="text-left text-sm text-muted-light hover:text-accent transition-colors py-2"
+                className="text-left text-sm text-muted-light hover:text-accent transition-colors py-2 cursor-pointer"
               >
                 {t.nav[item]}
               </button>

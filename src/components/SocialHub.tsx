@@ -2,7 +2,7 @@
 
 import { motion, useInView } from "framer-motion";
 import { useRef } from "react";
-import { MessageCircle, Camera, Send, DollarSign, ExternalLink } from "lucide-react";
+import { MessageCircle, Camera, DollarSign, ExternalLink } from "lucide-react";
 import type { Translations } from "@/i18n";
 
 interface SocialHubProps {
@@ -23,13 +23,6 @@ const socials = [
     url: "https://www.instagram.com/ladislav_v_/",
     color: "#E4405F",
     description: "Behind the scenes",
-  },
-  {
-    name: "VK",
-    icon: Send,
-    url: "https://vk.com/chernyacko",
-    color: "#4680C2",
-    description: "Russian community",
   },
   {
     name: "DonationAlerts",
@@ -61,7 +54,7 @@ export default function SocialHub({ t }: SocialHubProps) {
           </h2>
         </motion.div>
 
-        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
+        <div className="grid sm:grid-cols-3 gap-5 max-w-3xl mx-auto">
           {socials.map((social, i) => (
             <motion.a
               key={social.name}
@@ -71,7 +64,7 @@ export default function SocialHub({ t }: SocialHubProps) {
               initial={{ opacity: 0, y: 30 }}
               animate={isInView ? { opacity: 1, y: 0 } : {}}
               transition={{ duration: 0.5, delay: i * 0.1 }}
-              className="group glass-card rounded-xl p-6 text-center relative overflow-hidden"
+              className="group glass-card rounded-xl p-6 text-center relative overflow-hidden cursor-pointer"
             >
               <div
                 className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500"

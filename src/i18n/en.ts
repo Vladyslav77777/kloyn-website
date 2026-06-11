@@ -31,7 +31,7 @@ export default {
       { name: "Story Games", desc: "Deep narrative experiences with full playthroughs" },
       { name: "Horror", desc: "Surviving the scariest games on the platform" },
       { name: "Let's Plays", desc: "Casual gaming sessions with commentary" },
-      { name: "Minecraft", desc: "Building, surviving, and server adventures" },
+      { name: "Adventure", desc: "Exploring immersive worlds and thrilling quests" },
     ],
   },
   community: {

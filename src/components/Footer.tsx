@@ -32,14 +32,13 @@ export default function Footer({ t }: FooterProps) {
             { name: "YouTube", url: "https://www.youtube.com/@kloyn_gaming" },
             { name: "Discord", url: "https://discord.gg/ZCWYcpDwDE" },
             { name: "Instagram", url: "https://www.instagram.com/ladislav_v_/" },
-            { name: "VK", url: "https://vk.com/chernyacko" },
           ].map((link) => (
             <a
               key={link.name}
               href={link.url}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-sm text-muted hover:text-accent transition-colors"
+              className="text-sm text-muted hover:text-accent transition-colors cursor-pointer"
             >
               {link.name}
             </a>
