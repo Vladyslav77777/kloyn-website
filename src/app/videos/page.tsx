@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, Play, X, Clock, Eye, Loader2 } from "lucide-react";
+import { ArrowLeft, Play, X, Clock, Eye, Loader2, ListVideo } from "lucide-react";
 
 interface Video {
   id: string;
@@ -14,6 +14,13 @@ interface Video {
   duration: string;
 }
 
+interface Playlist {
+  id: string;
+  title: string;
+  thumbnail: string;
+  videoCount: number;
+}
+
 function formatViews(n: string): string {
   const num = parseInt(n, 10);
   if (num >= 1_000_000) return (num / 1_000_000).toFixed(1) + "M";
@@ -22,33 +29,49 @@ function formatViews(n: string): string {
 }
 
 export default function VideosPage() {
-  const [videos, setVideos] = useState<Video[]>([]);
+  const [allVideos, setAllVideos] = useState<Video[]>([]);
+  const [playlists, setPlaylists] = useState<Playlist[]>([]);
+  const [activeTab, setActiveTab] = useState<"all" | string>("all");
+  const [playlistVideos, setPlaylistVideos] = useState<Video[]>([]);
   const [loading, setLoading] = useState(true);
+  const [playlistLoading, setPlaylistLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedVideo, setSelectedVideo] = useState<string | null>(null);
   const [selectedTitle, setSelectedTitle] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
-    fetch("/api/videos")
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.videos) {
-          setVideos(data.videos);
-        } else {
-          setError(data.error || "Failed to load videos");
-        }
-        setLoading(false);
-      })
-      .catch(() => {
-        setError("Network error");
-        setLoading(false);
-      });
+    Promise.all([
+      fetch("/api/videos").then((r) => r.json()),
+      fetch("/api/playlists").then((r) => r.json()),
+    ]).then(([videosData, playlistsData]) => {
+      if (videosData.videos) setAllVideos(videosData.videos);
+      else setError(videosData.error || "Failed to load videos");
+      if (playlistsData.playlists) setPlaylists(playlistsData.playlists);
+      setLoading(false);
+    }).catch(() => {
+      setError("Network error");
+      setLoading(false);
+    });
   }, []);
 
+  const loadPlaylist = async (playlistId: string) => {
+    setPlaylistLoading(true);
+    setActiveTab(playlistId);
+    try {
+      const res = await fetch(`/api/playlists?playlistId=${playlistId}`);
+      const data = await res.json();
+      setPlaylistVideos(data.videos || []);
+    } catch {
+      setPlaylistVideos([]);
+    }
+    setPlaylistLoading(false);
+  };
+
+  const displayVideos = activeTab === "all" ? allVideos : playlistVideos;
   const filteredVideos = searchQuery
-    ? videos.filter((v) => v.title.toLowerCase().includes(searchQuery.toLowerCase()))
-    : videos;
+    ? displayVideos.filter((v) => v.title.toLowerCase().includes(searchQuery.toLowerCase()))
+    : displayVideos;
 
   const openVideo = (id: string, title: string) => {
     setSelectedVideo(id);
@@ -74,13 +97,15 @@ export default function VideosPage() {
       </div>
 
       {/* Search & stats */}
-      <div className="max-w-7xl mx-auto px-6 pt-8 pb-4">
+      <div className="max-w-7xl mx-auto px-6 pt-8 pb-2">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
           <div>
             <h2 className="font-display text-2xl tracking-wider mb-1">
               {loading ? "Loading..." : `${filteredVideos.length} videos`}
             </h2>
-            <p className="text-xs text-muted font-mono">All videos from KLOYN channel</p>
+            <p className="text-xs text-muted font-mono">
+              {activeTab === "all" ? "All videos from KLOYN channel" : playlists.find((p) => p.id === activeTab)?.title}
+            </p>
           </div>
           <div className="relative w-full sm:w-80">
             <input
@@ -93,14 +118,49 @@ export default function VideosPage() {
             />
           </div>
         </div>
+
+        {/* Playlist tabs */}
+        {!loading && playlists.length > 0 && (
+          <div className="flex gap-2 overflow-x-auto pb-4 scrollbar-none -mx-6 px-6">
+            <button
+              onClick={() => { setActiveTab("all"); setSearchQuery(""); }}
+              className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs font-mono tracking-wider whitespace-nowrap transition-all cursor-pointer ${
+                activeTab === "all"
+                  ? "bg-accent text-white"
+                  : "glass text-muted-light hover:text-foreground"
+              }`}
+            >
+              <ListVideo size={12} />
+              All ({allVideos.length})
+            </button>
+            {playlists.map((pl) => (
+              <button
+                key={pl.id}
+                onClick={() => { loadPlaylist(pl.id); setSearchQuery(""); }}
+                className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs font-mono tracking-wider whitespace-nowrap transition-all cursor-pointer ${
+                  activeTab === pl.id
+                    ? "bg-accent text-white"
+                    : "glass text-muted-light hover:text-foreground"
+                }`}
+              >
+                {pl.title} ({pl.videoCount})
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Content */}
-      <div className="max-w-7xl mx-auto px-6 pb-16">
+      <div className="max-w-7xl mx-auto px-6 pb-16 pt-4">
         {loading ? (
           <div className="flex flex-col items-center justify-center py-32 gap-4">
             <Loader2 size={32} className="text-accent animate-spin" />
-            <p className="text-sm text-muted font-mono">Loading videos from YouTube...</p>
+            <p className="text-sm text-muted font-mono">Loading videos...</p>
+          </div>
+        ) : playlistLoading ? (
+          <div className="flex flex-col items-center justify-center py-32 gap-4">
+            <Loader2 size={32} className="text-accent animate-spin" />
+            <p className="text-sm text-muted font-mono">Loading playlist...</p>
           </div>
         ) : error ? (
           <div className="flex flex-col items-center justify-center py-32 gap-4">
@@ -116,7 +176,7 @@ export default function VideosPage() {
                 key={video.id}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3, delay: Math.min(i * 0.03, 0.5) }}
+                transition={{ duration: 0.3, delay: Math.min(i * 0.02, 0.5) }}
                 onClick={() => openVideo(video.id, video.title)}
                 className="group text-left rounded-xl overflow-hidden transition-all duration-300 hover:scale-[1.02] cursor-pointer"
                 style={{
@@ -124,7 +184,6 @@ export default function VideosPage() {
                   border: "1px solid rgba(255, 255, 255, 0.05)",
                 }}
               >
-                {/* Thumbnail */}
                 <div className="relative aspect-video overflow-hidden bg-[#111]">
                   <img
                     src={video.thumbnail}
@@ -138,14 +197,12 @@ export default function VideosPage() {
                       <Play size={24} fill="white" className="text-white ml-1" />
                     </div>
                   </div>
-                  {/* Duration */}
                   <div className="absolute bottom-2 right-2 px-2 py-0.5 rounded bg-black/70 text-[10px] font-mono text-white/80 flex items-center gap-1">
                     <Clock size={10} />
                     {video.duration}
                   </div>
                 </div>
 
-                {/* Info */}
                 <div className="p-4">
                   <h3 className="text-sm font-semibold text-foreground line-clamp-2 mb-2 group-hover:text-accent transition-colors leading-snug">
                     {video.title}
