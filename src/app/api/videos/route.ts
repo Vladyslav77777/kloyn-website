@@ -1,7 +1,31 @@
-import { NextResponse } from "next/server";
+import { NextResponse, NextRequest } from "next/server";
 
 const API_KEY = process.env.YOUTUBE_API_KEY;
 const CHANNEL_ID = process.env.YOUTUBE_CHANNEL_ID;
+const ALLOWED_ORIGINS = [
+  "https://kloyn-gaming.vercel.app",
+  "https://kloyn-website.vercel.app",
+  "http://localhost:3000",
+];
+
+// Simple in-memory rate limiter
+const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
+const RATE_LIMIT = 10; // requests
+const RATE_WINDOW = 60_000; // 1 minute
+
+function checkRateLimit(ip: string): boolean {
+  const now = Date.now();
+  const entry = rateLimitMap.get(ip);
+
+  if (!entry || now > entry.resetAt) {
+    rateLimitMap.set(ip, { count: 1, resetAt: now + RATE_WINDOW });
+    return true;
+  }
+
+  if (entry.count >= RATE_LIMIT) return false;
+  entry.count++;
+  return true;
+}
 
 interface Video {
   id: string;
@@ -26,6 +50,8 @@ async function fetchAllVideos(): Promise<Video[]> {
 
   const videos: Video[] = [];
   let pageToken = "";
+  let pages = 0;
+  const MAX_PAGES = 15; // 15 * 50 = 750 videos max
 
   do {
     const url = `https://www.googleapis.com/youtube/v3/playlistItems?key=${API_KEY}&playlistId=${playlistId}&part=snippet&maxResults=50&pageToken=${pageToken}`;
@@ -67,18 +93,45 @@ async function fetchAllVideos(): Promise<Video[]> {
     }
 
     pageToken = data.nextPageToken || "";
-  } while (pageToken);
+    pages++;
+  } while (pageToken && pages < MAX_PAGES);
 
   return videos;
 }
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  // Origin check
+  const origin = request.headers.get("origin") || request.headers.get("referer") || "";
+  const isAllowed = ALLOWED_ORIGINS.some((o) => origin.startsWith(o)) || origin === "";
+  if (!isAllowed && origin !== "") {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  // Rate limit
+  const ip = request.headers.get("x-forwarded-for")?.split(",")[0] || "unknown";
+  if (!checkRateLimit(ip)) {
+    return NextResponse.json({ error: "Rate limit exceeded" }, { status: 429 });
+  }
+
+  // API key check
+  if (!API_KEY || !CHANNEL_ID) {
+    return NextResponse.json({ error: "Not configured" }, { status: 500 });
+  }
+
   try {
     const videos = await fetchAllVideos();
-    return NextResponse.json({ videos, total: videos.length });
+    const response = NextResponse.json({ videos, total: videos.length });
+
+    // Security headers
+    response.headers.set("Cache-Control", "public, s-maxage=3600, stale-while-revalidate=86400");
+    response.headers.set("X-Content-Type-Options", "nosniff");
+    response.headers.set("X-Frame-Options", "DENY");
+    response.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
+
+    return response;
   } catch {
-    return NextResponse.json({ error: "Failed to fetch videos", videos: [] }, { status: 200 });
+    return NextResponse.json({ error: "Failed", videos: [] }, { status: 200 });
   }
 }
