@@ -1,58 +1,59 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, Play, X, Clock, Eye } from "lucide-react";
+import { ArrowLeft, Play, X, Clock, Eye, Loader2 } from "lucide-react";
 
 interface Video {
   id: string;
   title: string;
-  series: string;
-  views: string;
-  date: string;
+  thumbnail: string;
+  publishedAt: string;
+  viewCount: string;
+  duration: string;
 }
 
-const videos: Video[] = [
-  { id: "jlFe6BMPp3A", title: "Life Is Strange: Double Exposure #1 ДОБРО ПОЖАЛОВАТЬ В КАЛЕДОН!!!", series: "Life Is Strange: Double Exposure", views: "22", date: "2025-10-27" },
-  { id: "zYkrrb_FPvM", title: "Life Is Strange: Double Exposure #2 ТОЛЬКО НЕ СНОВА!!!", series: "Life Is Strange: Double Exposure", views: "2", date: "2025-10-30" },
-  { id: "aoBt7qgIf7M", title: "Life Is Strange: Double Exposure #3 НАЧИНАЕМ МЕЖМИРОВОЕ РАССЛЕДОВАНИЕ!!", series: "Life Is Strange: Double Exposure", views: "2", date: "2025-11-03" },
-  { id: "piL3k_CbW4c", title: "Life Is Strange: Double Exposure #4 СУЕМ СВОЙ НОС В ЧУЖИЕ ДЕЛА!!", series: "Life Is Strange: Double Exposure", views: "0", date: "2025-11-06" },
-  { id: "rpL6e0H7KU4", title: "Life Is Strange: Double Exposure #5 УЗНАЕМ СТРАШНУЮ ПРАВДУ!!!", series: "Life Is Strange: Double Exposure", views: "4", date: "2025-11-10" },
-  { id: "TSdxHlcLVjI", title: "Life Is Strange: Double Exposure #6 ПРОДОЛЖАЕМ РАССЛЕДОВАНИЕ В КАМПУСЕ!", series: "Life Is Strange: Double Exposure", views: "2", date: "2025-11-13" },
-  { id: "Om-CSSu7t-Q", title: "Life Is Strange: Double Exposure #7 СТРОИМ РОМАНТИК С АМАНДОЙ??!!", series: "Life Is Strange: Double Exposure", views: "8", date: "2025-11-17" },
-  { id: "vrFwn4Jd3gQ", title: "Life Is Strange: Double Exposure #8 ВСТРЕЧАЕМ ДРУГУЮ СЕБЯ???!!!", series: "Life Is Strange: Double Exposure", views: "2", date: "2025-11-20" },
-  { id: "tcwXvoSD7rc", title: "Life Is Strange: Double Exposure #9 ОМУТ ПАМЯТИ И ФЛЕШБЕКИ ИЗ ПРОШЛОГО", series: "Life Is Strange: Double Exposure", views: "7", date: "2025-11-24" },
-  { id: "QdePqRLvsbM", title: "Life Is Strange: Double Exposure #10 ФИНАЛ ИСТОРИИ!!!", series: "Life Is Strange: Double Exposure", views: "4", date: "2025-11-27" },
-  { id: "c3nD4BhgE1o", title: "Firewatch #1 ПРИКЛЮЧЕНИЯ НАЧИНАЮТСЯ!!!", series: "Firewatch", views: "16", date: "2025-12-01" },
-  { id: "zN9c-55Gj6E", title: "Firewatch #2 ФИНАЛ САМОЙ ЧИЛЛОВОЙ ИГРЫ НА КАНАЛЕ!!!!", series: "Firewatch", views: "9", date: "2025-12-04" },
-  { id: "wteRipK6EOA", title: "DEAD SPACE 3 #8 СОБИРАЕМ РОЗЕТТУ (х2)!!!", series: "Dead Space 3", views: "9", date: "2025-10-16" },
-  { id: "eYYGooXcxig", title: "DEAD SPACE 3 #9 ИССЛЕДУЕМ ГОРОД ДРЕВНИХ И ФИНАЛ ОСНОВНОЙ ИГРЫ!!!", series: "Dead Space 3", views: "16", date: "2025-10-20" },
-  { id: "U4OZrsBhtBY", title: "DEAD SPACE 3 #10 DLC ПРОСНУВШИЕСЯ (СНОВА АЙЗЕК И НЕКРОМОРФЫ)!!!", series: "Dead Space 3", views: "5", date: "2025-10-23" },
-];
-
-const seriesColors: Record<string, string> = {
-  "Life Is Strange: Double Exposure": "#7c3aed",
-  "Firewatch": "#f97316",
-  "Dead Space 3": "#dc2626",
-};
-
-const seriesOrder = ["Life Is Strange: Double Exposure", "Dead Space 3", "Firewatch"];
+function formatViews(n: string): string {
+  const num = parseInt(n, 10);
+  if (num >= 1_000_000) return (num / 1_000_000).toFixed(1) + "M";
+  if (num >= 1_000) return (num / 1_000).toFixed(1) + "K";
+  return n;
+}
 
 export default function VideosPage() {
+  const [videos, setVideos] = useState<Video[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [selectedVideo, setSelectedVideo] = useState<string | null>(null);
-  const [activeSeries, setActiveSeries] = useState<string | null>(null);
+  const [selectedTitle, setSelectedTitle] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
 
-  const filteredVideos = activeSeries
-    ? videos.filter((v) => v.series === activeSeries)
+  useEffect(() => {
+    fetch("/api/videos")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.videos) {
+          setVideos(data.videos);
+        } else {
+          setError(data.error || "Failed to load videos");
+        }
+        setLoading(false);
+      })
+      .catch(() => {
+        setError("Network error");
+        setLoading(false);
+      });
+  }, []);
+
+  const filteredVideos = searchQuery
+    ? videos.filter((v) => v.title.toLowerCase().includes(searchQuery.toLowerCase()))
     : videos;
 
-  const groupedVideos = seriesOrder
-    .map((series) => ({
-      series,
-      videos: filteredVideos.filter((v) => v.series === series),
-    }))
-    .filter((g) => g.videos.length > 0);
+  const openVideo = (id: string, title: string) => {
+    setSelectedVideo(id);
+    setSelectedTitle(title);
+  };
 
   return (
     <div className="min-h-screen bg-[#0a0a0a]">
@@ -61,7 +62,7 @@ export default function VideosPage() {
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
           <Link
             href="/"
-            className="flex items-center gap-3 text-muted-light hover:text-accent transition-colors"
+            className="flex items-center gap-3 text-muted-light hover:text-accent transition-colors cursor-pointer"
           >
             <ArrowLeft size={18} />
             <span className="font-display text-lg tracking-wider">KLOYN</span>
@@ -72,109 +73,95 @@ export default function VideosPage() {
         </div>
       </div>
 
-      {/* Series filter */}
+      {/* Search & stats */}
       <div className="max-w-7xl mx-auto px-6 pt-8 pb-4">
-        <div className="flex flex-wrap gap-3">
-          <button
-            onClick={() => setActiveSeries(null)}
-            className={`px-4 py-2 rounded-full text-xs font-mono tracking-wider uppercase transition-all cursor-pointer ${
-              !activeSeries
-                ? "bg-accent text-white"
-                : "glass text-muted-light hover:text-foreground"
-            }`}
-          >
-            All ({videos.length})
-          </button>
-          {seriesOrder.map((series) => {
-            const count = videos.filter((v) => v.series === series).length;
-            if (count === 0) return null;
-            return (
-              <button
-                key={series}
-                onClick={() => setActiveSeries(activeSeries === series ? null : series)}
-                className={`px-4 py-2 rounded-full text-xs font-mono tracking-wider uppercase transition-all cursor-pointer ${
-                  activeSeries === series
-                    ? "text-white"
-                    : "glass text-muted-light hover:text-foreground"
-                }`}
-                style={activeSeries === series ? { backgroundColor: seriesColors[series] } : {}}
-              >
-                {series} ({count})
-              </button>
-            );
-          })}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
+          <div>
+            <h2 className="font-display text-2xl tracking-wider mb-1">
+              {loading ? "Loading..." : `${filteredVideos.length} videos`}
+            </h2>
+            <p className="text-xs text-muted font-mono">All videos from KLOYN channel</p>
+          </div>
+          <div className="relative w-full sm:w-80">
+            <input
+              type="text"
+              placeholder="Search videos..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full px-4 py-2.5 rounded-lg glass text-sm text-foreground placeholder:text-muted focus:outline-none focus:border-accent/30 font-mono"
+              style={{ border: "1px solid rgba(255,255,255,0.06)" }}
+            />
+          </div>
         </div>
       </div>
 
-      {/* Video grid */}
+      {/* Content */}
       <div className="max-w-7xl mx-auto px-6 pb-16">
-        {groupedVideos.map((group) => (
-          <div key={group.series} className="mb-12">
-            <div className="flex items-center gap-3 mb-6">
-              <div
-                className="w-3 h-3 rounded-full"
-                style={{ backgroundColor: seriesColors[group.series] }}
-              />
-              <h2 className="font-display text-xl tracking-wider">{group.series}</h2>
-              <span className="text-xs text-muted font-mono">{group.videos.length} videos</span>
-            </div>
-
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
-              {group.videos.map((video, i) => (
-                <motion.button
-                  key={video.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.4, delay: i * 0.05 }}
-                  onClick={() => setSelectedVideo(video.id)}
-                  className="group text-left rounded-xl overflow-hidden transition-all duration-300 hover:scale-[1.02] cursor-pointer"
-                  style={{
-                    background: "linear-gradient(135deg, rgba(17, 17, 17, 0.9), rgba(26, 26, 26, 0.7))",
-                    border: "1px solid rgba(255, 255, 255, 0.05)",
-                  }}
-                >
-                  {/* Thumbnail */}
-                  <div className="relative aspect-video overflow-hidden">
-                    <img
-                      src={`https://i.ytimg.com/vi/${video.id}/hqdefault.jpg`}
-                      alt={video.title}
-                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                      loading="lazy"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-                    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                      <div
-                        className="w-14 h-14 rounded-full flex items-center justify-center"
-                        style={{ backgroundColor: seriesColors[video.series] + "dd" }}
-                      >
-                        <Play size={24} fill="white" className="text-white ml-1" />
-                      </div>
-                    </div>
-                    {/* Duration badge */}
-                    <div className="absolute bottom-2 right-2 px-2 py-0.5 rounded bg-black/70 text-[10px] font-mono text-white/80">
-                      <Clock size={10} className="inline mr-1" />
-                      Watch
-                    </div>
-                  </div>
-
-                  {/* Info */}
-                  <div className="p-4">
-                    <h3 className="text-sm font-semibold text-foreground line-clamp-2 mb-2 group-hover:text-accent transition-colors leading-snug">
-                      {video.title}
-                    </h3>
-                    <div className="flex items-center gap-3 text-xs text-muted font-mono">
-                      <span className="flex items-center gap-1">
-                        <Eye size={10} />
-                        {video.views}
-                      </span>
-                      <span>{video.date}</span>
-                    </div>
-                  </div>
-                </motion.button>
-              ))}
-            </div>
+        {loading ? (
+          <div className="flex flex-col items-center justify-center py-32 gap-4">
+            <Loader2 size={32} className="text-accent animate-spin" />
+            <p className="text-sm text-muted font-mono">Loading videos from YouTube...</p>
           </div>
-        ))}
+        ) : error ? (
+          <div className="flex flex-col items-center justify-center py-32 gap-4">
+            <p className="text-sm text-accent">{error}</p>
+            <a href="https://www.youtube.com/@kloyn_gaming/videos" target="_blank" rel="noopener noreferrer" className="btn-secondary text-xs">
+              Open on YouTube
+            </a>
+          </div>
+        ) : (
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+            {filteredVideos.map((video, i) => (
+              <motion.button
+                key={video.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3, delay: Math.min(i * 0.03, 0.5) }}
+                onClick={() => openVideo(video.id, video.title)}
+                className="group text-left rounded-xl overflow-hidden transition-all duration-300 hover:scale-[1.02] cursor-pointer"
+                style={{
+                  background: "linear-gradient(135deg, rgba(17, 17, 17, 0.9), rgba(26, 26, 26, 0.7))",
+                  border: "1px solid rgba(255, 255, 255, 0.05)",
+                }}
+              >
+                {/* Thumbnail */}
+                <div className="relative aspect-video overflow-hidden bg-[#111]">
+                  <img
+                    src={video.thumbnail}
+                    alt={video.title}
+                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                    loading="lazy"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                  <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                    <div className="w-14 h-14 rounded-full bg-accent/90 flex items-center justify-center">
+                      <Play size={24} fill="white" className="text-white ml-1" />
+                    </div>
+                  </div>
+                  {/* Duration */}
+                  <div className="absolute bottom-2 right-2 px-2 py-0.5 rounded bg-black/70 text-[10px] font-mono text-white/80 flex items-center gap-1">
+                    <Clock size={10} />
+                    {video.duration}
+                  </div>
+                </div>
+
+                {/* Info */}
+                <div className="p-4">
+                  <h3 className="text-sm font-semibold text-foreground line-clamp-2 mb-2 group-hover:text-accent transition-colors leading-snug">
+                    {video.title}
+                  </h3>
+                  <div className="flex items-center gap-3 text-xs text-muted font-mono">
+                    <span className="flex items-center gap-1">
+                      <Eye size={10} />
+                      {formatViews(video.viewCount)}
+                    </span>
+                    <span>{video.publishedAt}</span>
+                  </div>
+                </div>
+              </motion.button>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* YouTube Modal */}
@@ -185,7 +172,7 @@ export default function VideosPage() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-8"
-            style={{ background: "rgba(0, 0, 0, 0.9)" }}
+            style={{ background: "rgba(0, 0, 0, 0.92)" }}
             onClick={() => setSelectedVideo(null)}
           >
             <motion.div
@@ -212,9 +199,7 @@ export default function VideosPage() {
                 />
               </div>
               <div className="mt-4 text-center">
-                <p className="text-sm text-muted-light font-mono">
-                  {videos.find((v) => v.id === selectedVideo)?.title}
-                </p>
+                <p className="text-sm text-muted-light font-mono line-clamp-2">{selectedTitle}</p>
                 <a
                   href={`https://www.youtube.com/watch?v=${selectedVideo}`}
                   target="_blank"
