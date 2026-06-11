@@ -1,8 +1,9 @@
 "use client";
 
-import { motion, useInView } from "framer-motion";
+import { useState } from "react";
+import { motion, useInView, AnimatePresence } from "framer-motion";
 import { useRef } from "react";
-import { Play, ExternalLink } from "lucide-react";
+import { Play, X, ExternalLink } from "lucide-react";
 import Link from "next/link";
 import type { Translations } from "@/i18n";
 
@@ -40,6 +41,8 @@ const videos = [
 export default function FeaturedVideos({ t }: VideosProps) {
   const ref = useRef(null);
   const isInView = useInView(ref, { once: true, margin: "-100px" });
+  const [selectedVideo, setSelectedVideo] = useState<string | null>(null);
+  const [selectedTitle, setSelectedTitle] = useState("");
 
   return (
     <section id="videos" className="relative py-32 px-6">
@@ -60,15 +63,16 @@ export default function FeaturedVideos({ t }: VideosProps) {
 
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
           {videos.map((video, i) => (
-            <motion.a
+            <motion.button
               key={video.id}
-              href={`https://www.youtube.com/watch?v=${video.id}`}
-              target="_blank"
-              rel="noopener noreferrer"
+              onClick={() => {
+                setSelectedVideo(video.id);
+                setSelectedTitle(video.title);
+              }}
               initial={{ opacity: 0, y: 30 }}
               animate={isInView ? { opacity: 1, y: 0 } : {}}
               transition={{ duration: 0.5, delay: i * 0.1 }}
-              className="group glass-card rounded-xl overflow-hidden"
+              className="group glass-card rounded-xl overflow-hidden text-left cursor-pointer"
             >
               <div className="relative aspect-video overflow-hidden">
                 <img
@@ -104,7 +108,7 @@ export default function FeaturedVideos({ t }: VideosProps) {
                   />
                 </div>
               </div>
-            </motion.a>
+            </motion.button>
           ))}
         </div>
 
@@ -114,15 +118,62 @@ export default function FeaturedVideos({ t }: VideosProps) {
           transition={{ duration: 0.5, delay: 0.6 }}
           className="text-center mt-12"
         >
-          <Link
-            href="/videos"
-            className="btn-secondary"
-          >
+          <Link href="/videos" className="btn-secondary">
             View All Videos
             <ExternalLink size={14} />
           </Link>
         </motion.div>
       </div>
+
+      {/* Modal */}
+      <AnimatePresence>
+        {selectedVideo && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-8"
+            style={{ background: "rgba(0, 0, 0, 0.92)" }}
+            onClick={() => setSelectedVideo(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              transition={{ duration: 0.3 }}
+              className="relative w-full max-w-5xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <button
+                onClick={() => setSelectedVideo(null)}
+                className="absolute -top-12 right-0 text-white/60 hover:text-white transition-colors cursor-pointer"
+              >
+                <X size={28} />
+              </button>
+              <div className="relative w-full aspect-video rounded-xl overflow-hidden shadow-2xl">
+                <iframe
+                  src={`https://www.youtube.com/embed/${selectedVideo}?autoplay=1&rel=0`}
+                  title="YouTube video player"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                  className="absolute inset-0 w-full h-full"
+                />
+              </div>
+              <div className="mt-4 text-center">
+                <p className="text-sm text-muted-light font-mono line-clamp-2">{selectedTitle}</p>
+                <a
+                  href={`https://www.youtube.com/watch?v=${selectedVideo}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs text-accent hover:underline mt-2 inline-block"
+                >
+                  Open on YouTube →
+                </a>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </section>
   );
 }
