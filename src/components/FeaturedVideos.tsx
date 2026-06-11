@@ -3,6 +3,7 @@
 import { motion, useInView } from "framer-motion";
 import { useRef } from "react";
 import { Play, ExternalLink } from "lucide-react";
+import Link from "next/link";
 import type { Translations } from "@/i18n";
 
 interface VideosProps {
@@ -12,25 +13,25 @@ interface VideosProps {
 const videos = [
   {
     id: "jlFe6BMPp3A",
-    title: "Life Is Strange: Double Exposure #1",
+    title: "Life Is Strange: Double Exposure #1 ДОБРО ПОЖАЛОВАТЬ В КАЛЕДОН!!!",
     views: "22",
     category: "Story",
   },
   {
     id: "eYYGooXcxig",
-    title: "Dead Space 3 #9 — Ancient City & Finale",
+    title: "DEAD SPACE 3 #9 ИССЛЕДУЕМ ГОРОД ДРЕВНИХ И ФИНАЛ ОСНОВНОЙ ИГРЫ!!!",
     views: "16",
     category: "Horror",
   },
   {
     id: "zN9c-55Gj6E",
-    title: "Firewatch #2 — The Chill Finale",
+    title: "Firewatch #2 ФИНАЛ САМОЙ ЧИЛЛОВОЙ ИГРЫ НА КАНАЛЕ!!!!",
     views: "9",
     category: "Adventure",
   },
   {
     id: "U4OZrsBhtBY",
-    title: "Dead Space 3 #10 — DLC Awakened",
+    title: "DEAD SPACE 3 #10 DLC ПРОСНУВШИЕСЯ (СНОВА АЙЗЕК И НЕКРОМОРФЫ)!!!",
     views: "5",
     category: "Horror",
   },
@@ -113,15 +114,13 @@ export default function FeaturedVideos({ t }: VideosProps) {
           transition={{ duration: 0.5, delay: 0.6 }}
           className="text-center mt-12"
         >
-          <a
-            href="https://www.youtube.com/@kloyn_gaming/videos"
-            target="_blank"
-            rel="noopener noreferrer"
+          <Link
+            href="/videos"
             className="btn-secondary"
           >
             View All Videos
             <ExternalLink size={14} />
-          </a>
+          </Link>
         </motion.div>
       </div>
     </section>
